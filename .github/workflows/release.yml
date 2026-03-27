@@ -17,8 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: "npm"
+          node-version: 22
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -31,16 +30,60 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build and release Tauri app
-        uses: tauri-apps/tauri-action@v0
+      - name: Build Tauri app
+        run: npx tauri build
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          tagName: v__VERSION__
-          releaseName: "Yavuz Turgut Muhasebe v__VERSION__"
-          releaseBody: "Yeni sürüm yayınlandı."
-          releaseDraft: false
-          prerelease: false
-          includeUpdaterJson: true
+
+      - name: Prepare updater JSON
+        shell: bash
+        run: |
+          BUNDLE_DIR="src-tauri/target/release/bundle/nsis"
+          NSIS_ZIP=$(find "$BUNDLE_DIR" -name "*.nsis.zip" | head -1)
+          NSIS_SIG=$(find "$BUNDLE_DIR" -name "*.nsis.zip.sig" | head -1)
+          SETUP_EXE=$(find "$BUNDLE_DIR" -name "*-setup.exe" | head -1)
+
+          VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*: "\(.*\)".*/\1/')
+          SIG_CONTENT=$(cat "$NSIS_SIG")
+
+          echo "Found nsis.zip: $NSIS_ZIP"
+          echo "Found sig: $NSIS_SIG"
+          echo "Found exe: $SETUP_EXE"
+          echo "Version: $VERSION"
+
+          FILENAME=$(basename "$NSIS_ZIP")
+
+          cat > latest.json << ENDJSON
+          {
+            "version": "$VERSION",
+            "notes": "Yeni sürüm yayınlandı.",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "$SIG_CONTENT",
+                "url": "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${FILENAME}"
+              }
+            }
+          }
+          ENDJSON
+
+          echo "latest.json created:"
+          cat latest.json
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*: "\(.*\)".*/\1/')
+          BUNDLE_DIR="src-tauri/target/release/bundle/nsis"
+          SETUP_EXE=$(find "$BUNDLE_DIR" -name "*-setup.exe" | head -1)
+          NSIS_ZIP=$(find "$BUNDLE_DIR" -name "*.nsis.zip" | head -1)
+
+          gh release create "v${VERSION}" \
+            --title "Yavuz Turgut Muhasebe v${VERSION}" \
+            --notes "Yeni sürüm yayınlandı." \
+            "$SETUP_EXE" \
+            "$NSIS_ZIP" \
+            latest.json

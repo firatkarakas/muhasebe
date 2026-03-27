@@ -1,6 +1,6 @@
 [package]
 name = "on-muhasebe-app"
-version = "1.0.4"
+version = "1.0.5"
 description = "Ön Muhasebe Uygulaması"
 authors = []
 edition = "2021"
