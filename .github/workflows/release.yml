@@ -36,29 +36,54 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
+      - name: List bundle files
+        shell: pwsh
+        run: |
+          Write-Host "=== NSIS directory ==="
+          Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Recurse | ForEach-Object { Write-Host $_.FullName }
+          Write-Host "=== MSI directory ==="
+          Get-ChildItem -Path "src-tauri/target/release/bundle/msi" -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+
       - name: Create release with updater
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $bundleDir = "src-tauri/target/release/bundle/nsis"
-          $nsisZip = Get-ChildItem -Path $bundleDir -Filter "*.nsis.zip" | Select-Object -First 1
-          $nsisSig = Get-ChildItem -Path $bundleDir -Filter "*.nsis.zip.sig" | Select-Object -First 1
-          $setupExe = Get-ChildItem -Path $bundleDir -Filter "*-setup.exe" | Select-Object -First 1
+          $bundleDir = "src-tauri\target\release\bundle\nsis"
 
-          $conf = Get-Content "src-tauri/tauri.conf.json" | ConvertFrom-Json
+          Write-Host "Looking in: $bundleDir"
+          $allFiles = Get-ChildItem -Path $bundleDir -File
+          foreach ($f in $allFiles) {
+            Write-Host "  Found: $($f.Name)"
+          }
+
+          $nsisZip = $allFiles | Where-Object { $_.Name -like "*.nsis.zip" } | Select-Object -First 1
+          $nsisSig = $allFiles | Where-Object { $_.Name -like "*.nsis.zip.sig" } | Select-Object -First 1
+          $setupExe = $allFiles | Where-Object { $_.Name -like "*-setup.exe" } | Select-Object -First 1
+
+          if (-not $nsisSig) {
+            Write-Host "No .nsis.zip.sig found, checking for any .sig file..."
+            $nsisSig = $allFiles | Where-Object { $_.Name -like "*.sig" } | Select-Object -First 1
+          }
+
+          if (-not $nsisSig) {
+            Write-Host "ERROR: No signature file found at all"
+            exit 1
+          }
+
+          $conf = Get-Content "src-tauri\tauri.conf.json" | ConvertFrom-Json
           $version = $conf.version
           $sigContent = Get-Content $nsisSig.FullName -Raw
 
           Write-Host "Version: $version"
           Write-Host "NSIS ZIP: $($nsisZip.Name)"
-          Write-Host "Signature: $($nsisSig.Name)"
+          Write-Host "Signature file: $($nsisSig.Name)"
           Write-Host "Setup EXE: $($setupExe.Name)"
 
           $zipName = $nsisZip.Name
           $downloadUrl = "https://github.com/${{ github.repository }}/releases/download/v${version}/${zipName}"
 
-          $latestJson = @{
+          $json = @{
             version = $version
             notes = "Yeni sürüm yayınlandı."
             pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
@@ -70,13 +95,13 @@ jobs:
             }
           } | ConvertTo-Json -Depth 4
 
-          $latestJson | Out-File -FilePath "latest.json" -Encoding utf8NoBOM
-          Write-Host "latest.json content:"
+          $json | Out-File -FilePath "latest.json" -Encoding utf8NoBOM
+          Write-Host "latest.json:"
           Get-Content "latest.json"
 
           gh release create "v${version}" `
             --title "Yavuz Turgut Muhasebe v${version}" `
             --notes "Yeni sürüm yayınlandı." `
-            $setupExe.FullName `
-            $nsisZip.FullName `
+            "$($setupExe.FullName)" `
+            "$($nsisZip.FullName)" `
             "latest.json"
