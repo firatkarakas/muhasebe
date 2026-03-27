@@ -36,54 +36,47 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: Prepare updater JSON
-        shell: bash
-        run: |
-          BUNDLE_DIR="src-tauri/target/release/bundle/nsis"
-          NSIS_ZIP=$(find "$BUNDLE_DIR" -name "*.nsis.zip" | head -1)
-          NSIS_SIG=$(find "$BUNDLE_DIR" -name "*.nsis.zip.sig" | head -1)
-          SETUP_EXE=$(find "$BUNDLE_DIR" -name "*-setup.exe" | head -1)
-
-          VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*: "\(.*\)".*/\1/')
-          SIG_CONTENT=$(cat "$NSIS_SIG")
-
-          echo "Found nsis.zip: $NSIS_ZIP"
-          echo "Found sig: $NSIS_SIG"
-          echo "Found exe: $SETUP_EXE"
-          echo "Version: $VERSION"
-
-          FILENAME=$(basename "$NSIS_ZIP")
-
-          cat > latest.json << ENDJSON
-          {
-            "version": "$VERSION",
-            "notes": "Yeni sürüm yayınlandı.",
-            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "platforms": {
-              "windows-x86_64": {
-                "signature": "$SIG_CONTENT",
-                "url": "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${FILENAME}"
-              }
-            }
-          }
-          ENDJSON
-
-          echo "latest.json created:"
-          cat latest.json
-
-      - name: Create GitHub Release
-        shell: bash
+      - name: Create release with updater
+        shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*: "\(.*\)".*/\1/')
-          BUNDLE_DIR="src-tauri/target/release/bundle/nsis"
-          SETUP_EXE=$(find "$BUNDLE_DIR" -name "*-setup.exe" | head -1)
-          NSIS_ZIP=$(find "$BUNDLE_DIR" -name "*.nsis.zip" | head -1)
+          $bundleDir = "src-tauri/target/release/bundle/nsis"
+          $nsisZip = Get-ChildItem -Path $bundleDir -Filter "*.nsis.zip" | Select-Object -First 1
+          $nsisSig = Get-ChildItem -Path $bundleDir -Filter "*.nsis.zip.sig" | Select-Object -First 1
+          $setupExe = Get-ChildItem -Path $bundleDir -Filter "*-setup.exe" | Select-Object -First 1
 
-          gh release create "v${VERSION}" \
-            --title "Yavuz Turgut Muhasebe v${VERSION}" \
-            --notes "Yeni sürüm yayınlandı." \
-            "$SETUP_EXE" \
-            "$NSIS_ZIP" \
-            latest.json
+          $conf = Get-Content "src-tauri/tauri.conf.json" | ConvertFrom-Json
+          $version = $conf.version
+          $sigContent = Get-Content $nsisSig.FullName -Raw
+
+          Write-Host "Version: $version"
+          Write-Host "NSIS ZIP: $($nsisZip.Name)"
+          Write-Host "Signature: $($nsisSig.Name)"
+          Write-Host "Setup EXE: $($setupExe.Name)"
+
+          $zipName = $nsisZip.Name
+          $downloadUrl = "https://github.com/${{ github.repository }}/releases/download/v${version}/${zipName}"
+
+          $latestJson = @{
+            version = $version
+            notes = "Yeni sürüm yayınlandı."
+            pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+            platforms = @{
+              "windows-x86_64" = @{
+                signature = $sigContent.Trim()
+                url = $downloadUrl
+              }
+            }
+          } | ConvertTo-Json -Depth 4
+
+          $latestJson | Out-File -FilePath "latest.json" -Encoding utf8NoBOM
+          Write-Host "latest.json content:"
+          Get-Content "latest.json"
+
+          gh release create "v${version}" `
+            --title "Yavuz Turgut Muhasebe v${version}" `
+            --notes "Yeni sürüm yayınlandı." `
+            $setupExe.FullName `
+            $nsisZip.FullName `
+            "latest.json"
