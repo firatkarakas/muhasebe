@@ -1,6 +1,6 @@
 {
   "productName": "Yavuz Turgut Muhasebe",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "identifier": "com.yavuzturgut.muhasebe",
   "build": {
     "frontendDist": "../dist",
@@ -37,7 +37,8 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "createUpdaterArtifacts": true
   },
   "plugins": {
     "sql": {
