@@ -43,7 +43,7 @@ jobs:
           releaseBody: "Yeni sürüm yayınlandı."
           releaseDraft: false
           prerelease: false
-          args: --bundles nsis
+          args: ""
 
       - name: Upload updater artifacts
         shell: pwsh
