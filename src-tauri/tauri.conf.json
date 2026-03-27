@@ -1,0 +1,55 @@
+{
+  "productName": "Yavuz Turgut Muhasebe",
+  "version": "1.0.0",
+  "identifier": "com.yavuzturgut.muhasebe",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "withGlobalTauri": false
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Yavuz Turgut Muhasebe",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' https://github.com https://api.github.com https://objects.githubusercontent.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "sql": {
+      "preloadConnections": ["sqlite:muhasebe.db"]
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ1QkQ3OUVERjk2NEU3RDcKUldUWDUyVDU3WG05UmEwWUllRzFNZXdsYWM5Y3orWGVxWStDcGhyVlNoWFRQQ0NZaFIwbGE4dkUK",
+      "endpoints": [
+        "https://github.com/firatkarakas/yavuz-turgut-muhasebe/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

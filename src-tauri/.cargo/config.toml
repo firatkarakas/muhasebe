@@ -1,0 +1,3 @@
+[build]
+# Windows için MSVC toolchain önerilir
+# target = "x86_64-pc-windows-msvc"
