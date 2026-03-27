@@ -1,13 +1,12 @@
 {
   "productName": "Yavuz Turgut Muhasebe",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "identifier": "com.yavuzturgut.muhasebe",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "withGlobalTauri": false
   },
   "app": {
     "windows": [
