@@ -14,8 +14,8 @@ export function Sidebar({ onCikis }) {
     <aside className="flex h-full w-52 flex-col border-r bg-card">
       {/* Logo */}
       <div className="flex h-11 items-center gap-2.5 border-b px-5">
-        <img src="/logo.svg" alt="Yavuz Turgut Muhasebe" className="h-6 w-6 rounded" />
-        <span className="text-sm font-bold tracking-tight">Yavuz Turgut</span>
+        <img src="/logo.svg" alt="Muhasebe" className="h-6 w-6 rounded" />
+        <span className="text-sm font-bold tracking-tight">Muhasebe</span>
       </div>
 
       {/* Nav */}

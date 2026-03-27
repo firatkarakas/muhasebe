@@ -9,7 +9,7 @@ export function Titlebar() {
       className="titlebar"
     >
       <div data-tauri-drag-region className="titlebar-title">
-        Yavuz Turgut Muhasebe
+        Muhasebe
       </div>
 
       <div className="titlebar-buttons">

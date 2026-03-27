@@ -1,18 +1,17 @@
 {
-  "productName": "Yavuz Turgut Muhasebe",
+  "productName": "Muhasebe",
   "version": "1.0.0",
-  "identifier": "com.yavuzturgut.muhasebe",
+  "identifier": "com.firatkarakas.muhasebe",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
-    "withGlobalTauri": false
+    "beforeBuildCommand": "npm run build"
   },
   "app": {
     "windows": [
       {
-        "title": "Yavuz Turgut Muhasebe",
+        "title": "Muhasebe",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,
@@ -30,6 +29,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -45,7 +45,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ1QkQ3OUVERjk2NEU3RDcKUldUWDUyVDU3WG05UmEwWUllRzFNZXdsYWM5Y3orWGVxWStDcGhyVlNoWFRQQ0NZaFIwbGE4dkUK",
       "endpoints": [
-        "https://github.com/firatkarakas/yavuz-turgut-muhasebe/releases/latest/download/latest.json"
+        "https://github.com/firatkarakas/muhasebe/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

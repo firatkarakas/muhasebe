@@ -17,8 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: "npm"
+          node-version: 22
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -31,16 +30,84 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build and release Tauri app
-        uses: tauri-apps/tauri-action@v0
+      - name: Build and release
+        shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          tagName: v__VERSION__
-          releaseName: "Yavuz Turgut Muhasebe v__VERSION__"
-          releaseBody: "Yeni sürüm yayınlandı."
-          releaseDraft: false
-          prerelease: false
-          includeUpdaterJson: true
+        run: |
+          # Build
+          npx tauri build 2>&1 | Tee-Object -Variable buildOutput
+          Write-Host $buildOutput
+
+          # Find all bundle files
+          $bundleDir = "src-tauri\target\release\bundle"
+          Write-Host "`n=== All bundle files ==="
+          Get-ChildItem $bundleDir -Recurse -File | ForEach-Object {
+            Write-Host "  $($_.FullName) ($($_.Length) bytes)"
+          }
+
+          # Get version
+          $conf = Get-Content "src-tauri\tauri.conf.json" | ConvertFrom-Json
+          $version = $conf.version
+
+          # Find NSIS files
+          $nsisDir = Join-Path $bundleDir "nsis"
+          $setupExe = Get-ChildItem $nsisDir -Filter "*-setup.exe" | Select-Object -First 1
+          $nsisZip = Get-ChildItem $nsisDir -Filter "*.nsis.zip" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $nsisSig = Get-ChildItem $nsisDir -Filter "*.nsis.zip.sig" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $exeSig = Get-ChildItem $nsisDir -Filter "*-setup.exe.sig" -ErrorAction SilentlyContinue | Select-Object -First 1
+
+          Write-Host "`nSetup EXE: $($setupExe.Name)"
+          Write-Host "NSIS ZIP: $($nsisZip.Name)"
+          Write-Host "NSIS SIG: $($nsisSig.Name)"
+          Write-Host "EXE SIG: $($exeSig.Name)"
+
+          # Determine which sig file to use for updater JSON
+          $sigFile = $null
+          $updateUrl = $null
+
+          if ($nsisSig -and $nsisZip) {
+            $sigFile = $nsisSig
+            $updateUrl = "https://github.com/${{ github.repository }}/releases/download/v${version}/$($nsisZip.Name)"
+          } elseif ($exeSig) {
+            $sigFile = $exeSig
+            $updateUrl = "https://github.com/${{ github.repository }}/releases/download/v${version}/$($setupExe.Name)"
+          }
+
+          # Create release
+          $releaseAssets = @("$($setupExe.FullName)")
+          if ($nsisZip) { $releaseAssets += "$($nsisZip.FullName)" }
+
+          $assetArgs = $releaseAssets | ForEach-Object { "`"$_`"" }
+          $cmd = "gh release create `"v${version}`" --title `"Muhasebe v${version}`" --notes `"Yeni sürüm yayınlandı.`" $($assetArgs -join ' ')"
+          Write-Host "`nCreating release: $cmd"
+          Invoke-Expression $cmd
+
+          # Create and upload latest.json if we have a signature
+          if ($sigFile) {
+            $sigContent = (Get-Content $sigFile.FullName -Raw).Trim()
+            $pubDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+
+            $json = @{
+              version = "v${version}"
+              notes = "Yeni sürüm yayınlandı."
+              pub_date = $pubDate
+              platforms = @{
+                "windows-x86_64" = @{
+                  signature = $sigContent
+                  url = $updateUrl
+                }
+              }
+            } | ConvertTo-Json -Depth 4
+
+            $json | Out-File -FilePath "latest.json" -Encoding utf8NoBOM
+            Write-Host "`nlatest.json:"
+            Get-Content "latest.json"
+
+            gh release upload "v${version}" "latest.json" --clobber
+            Write-Host "`nUpdater JSON uploaded successfully!"
+          } else {
+            Write-Host "WARNING: No signature files found. Updater JSON not created."
+          }

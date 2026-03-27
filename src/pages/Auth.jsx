@@ -79,7 +79,7 @@ export default function Auth({ onGiris }) {
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
             <Lock className="h-5 w-5 text-primary-foreground" />
           </div>
-          <h1 className="text-lg font-bold">Yavuz Turgut Muhasebe</h1>
+          <h1 className="text-lg font-bold">Muhasebe</h1>
           <p className="text-xs text-muted-foreground">
             {mod === "kayit"
               ? "İlk kullanım — şifrenizi belirleyin"

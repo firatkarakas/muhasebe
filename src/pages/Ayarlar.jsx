@@ -39,7 +39,7 @@ export default function Ayarlar() {
     try {
       setIslemYapiliyor(true);
       const tarih = bugunTarih().replace(/-/g, "");
-      const dosyaAdi = `yavuz-turgut-yedek-${tarih}.db`;
+      const dosyaAdi = `muhasebe-yedek-${tarih}.db`;
       const kayitYolu = await save({
         title: "Veritabanı yedeğini kaydet",
         defaultPath: dosyaAdi,
@@ -259,7 +259,7 @@ export default function Ayarlar() {
             <div className="rounded-lg border bg-card p-4 space-y-2 text-xs text-muted-foreground">
               <div className="flex justify-between">
                 <span>Uygulama</span>
-                <span className="font-medium text-foreground">Yavuz Turgut Muhasebe</span>
+                <span className="font-medium text-foreground">Muhasebe</span>
               </div>
               <div className="flex justify-between">
                 <span>Sürüm</span>
