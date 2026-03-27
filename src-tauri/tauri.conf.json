@@ -1,6 +1,6 @@
 {
   "productName": "Yavuz Turgut Muhasebe",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "identifier": "com.yavuzturgut.muhasebe",
   "build": {
     "frontendDist": "../dist",

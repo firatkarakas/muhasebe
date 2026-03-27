@@ -30,7 +30,8 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build and release
+      - name: Build and create release
+        id: tauri
         uses: tauri-apps/tauri-action@dev
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -42,5 +43,54 @@ jobs:
           releaseBody: "Yeni sürüm yayınlandı."
           releaseDraft: false
           prerelease: false
-          includeUpdaterJson: true
           args: --bundles nsis
+
+      - name: Upload updater artifacts
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $bundleDir = "src-tauri\target\release\bundle\nsis"
+          $conf = Get-Content "src-tauri\tauri.conf.json" | ConvertFrom-Json
+          $version = $conf.version
+
+          Write-Host "Bundle directory contents:"
+          Get-ChildItem $bundleDir | ForEach-Object { Write-Host "  $($_.Name) ($($_.Length) bytes)" }
+
+          $nsisZip = Get-ChildItem $bundleDir -Filter "*.nsis.zip" | Select-Object -First 1
+          $nsisSig = Get-ChildItem $bundleDir -Filter "*.nsis.zip.sig" | Select-Object -First 1
+
+          if (-not $nsisZip -or -not $nsisSig) {
+            Write-Host "ERROR: Missing nsis.zip or sig file"
+            exit 1
+          }
+
+          $sigContent = (Get-Content $nsisSig.FullName -Raw).Trim()
+          $zipName = $nsisZip.Name
+
+          Write-Host "Uploading $zipName to release..."
+          gh release upload "v${version}" "$($nsisZip.FullName)" --clobber
+
+          $url = "https://github.com/${{ github.repository }}/releases/download/v${version}/${zipName}"
+          $pubDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+
+          $json = @{
+            version = "v${version}"
+            notes = "Yeni sürüm yayınlandı."
+            pub_date = $pubDate
+            platforms = @{
+              "windows-x86_64" = @{
+                signature = $sigContent
+                url = $url
+              }
+            }
+          } | ConvertTo-Json -Depth 4
+
+          $json | Out-File -FilePath "latest.json" -Encoding utf8NoBOM
+          Write-Host "latest.json content:"
+          Get-Content "latest.json"
+
+          Write-Host "Uploading latest.json to release..."
+          gh release upload "v${version}" "latest.json" --clobber
+
+          Write-Host "Done! All updater artifacts uploaded."
