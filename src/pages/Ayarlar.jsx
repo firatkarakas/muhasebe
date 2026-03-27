@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getVersion } from "@tauri-apps/api/app";
 import { useTema } from "@/lib/theme.jsx";
 import { veritabaniYedekle, veritabaniGeriYukle } from "@/lib/db";
 import { Settings, Moon, Sun, Monitor, Save, Download, Upload, AlertTriangle, Database } from "lucide-react";
@@ -26,7 +27,12 @@ function firmaInfoOku() {
 export default function Ayarlar() {
   const { tema, setTema } = useTema();
   const [firma, setFirma] = useState(firmaInfoOku);
+  const [surum, setSurum] = useState("");
   const [yuklemeOnay, setYuklemeOnay] = useState(false);
+
+  useEffect(() => {
+    getVersion().then(setSurum);
+  }, []);
   const [seciliYedekYol, setSeciliYedekYol] = useState(null);
   const [islemYapiliyor, setIslemYapiliyor] = useState(false);
 
@@ -263,7 +269,7 @@ export default function Ayarlar() {
               </div>
               <div className="flex justify-between">
                 <span>Sürüm</span>
-                <span className="font-medium text-foreground">1.0.0</span>
+                <span className="font-medium text-foreground">{surum || "..."}</span>
               </div>
               <div className="flex justify-between">
                 <span>Veritabanı</span>
@@ -275,7 +281,7 @@ export default function Ayarlar() {
               </div>
               <div className="flex justify-between">
                 <span>Geliştirici</span>
-                <span className="font-medium text-foreground">Fırat Karakaş</span>
+                <span className="font-medium text-foreground">Firat Karakas</span>
               </div>
             </div>
           </section>
